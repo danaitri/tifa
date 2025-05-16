@@ -115,7 +115,7 @@ def tifa_score_benchmark(vqa_model_name, question_answer_path, id2img_path):
 #
 #     return result_dict
 #
-
+from PIL import Image
 def tifa_score_single(vqa_model, question_answer_pairs, image):
     """Calculate TIFA score for a single image-question pair"""
 
