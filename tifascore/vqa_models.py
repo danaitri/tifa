@@ -33,7 +33,9 @@ class GIT:
         self.model.to(self.device)
         
     def vqa(self, image, question):
-        image = Image.open(image).convert('RGB')
+        if isinstance(image, str):
+            image = Image.open(image).convert('RGB')
+        #image = Image.open(image).convert('RGB')
         # prepare image
         pixel_values = self.processor(images=image, return_tensors="pt").pixel_values.to(self.device)
 
@@ -62,7 +64,9 @@ class BLIP:
         self.model.to(self.device)
 
     def vqa(self, image, question):
-        image = Image.open(image).convert('RGB')
+        if isinstance(image, str):
+            image = Image.open(image).convert('RGB')
+        # image = Image.open(image).convert('RGB')
         # prepare image + question
         inputs = self.processor(images=image, text=question, return_tensors="pt").to(self.device)
         
@@ -80,7 +84,9 @@ class VILT:
         self.model.to(self.device)
 
     def vqa(self, image, question):
-        image = Image.open(image).convert('RGB')
+        if isinstance(image, str):
+            image = Image.open(image).convert('RGB')
+        #  image = Image.open(image).convert('RGB')
         # prepare image + question
 
         encoding = self.processor(images=image, text=question, truncation=True, return_tensors="pt").to(self.device)
@@ -137,7 +143,10 @@ class BLIP2:
             name="blip2_t5", model_type=ckpt, is_eval=True, device=self.device)
         
     def vqa(self, image, question, choices = []):
-        image = Image.open(image).convert('RGB')
+        if isinstance(image, str):
+            image = Image.open(image).convert('RGB')
+        #  image = Image.open(image).convert('RGB')
+
         image = self.vis_processors["eval"](image).unsqueeze(0).to(self.device)
         
         if len(choices) == 0:
@@ -154,25 +163,57 @@ class VQAModel:
         class_name, ckpt = vqa_models[model_name]
         self.model = eval(class_name)(ckpt)
         print(f"Finish loading {model_name}")
-        
-        # use SBERT to find the closest choice
+
         self.sbert_model = SBERTModel("sentence-transformers/all-mpnet-base-v2")
-        
+
     def vqa(self, image, question, choices=[]):
+        if isinstance(image, str):
+            image = Image.open(image).convert('RGB')
+        #             image = Image.open(image).convert('RGB')
         with torch.no_grad():
             if (len(choices) != 0) and (self.model_name.startswith("blip2")):
                 return self.model.vqa(image, question, choices)
             else:
                 return self.model.vqa(image, question)
-            
+
     def multiple_choice_vqa(self, image, question, choices):
-        
+
         # Get VQA model's answer
         free_form_answer = self.vqa(image, question, choices)
-        
+
         # Limit the answer to the choices
         multiple_choice_answer = free_form_answer
         if free_form_answer not in choices:
             multiple_choice_answer = self.sbert_model.multiple_choice(free_form_answer, choices)
         return {"free_form_answer": free_form_answer, "multiple_choice_answer": multiple_choice_answer}
-    
+
+#
+# class VQAModel:
+#     def __init__(self, model_name='mplug-large'):
+#         print(f"Loading {model_name}...")
+#         self.model_name = model_name
+#         class_name, ckpt = vqa_models[model_name]
+#         self.model = eval(class_name)(ckpt)
+#         print(f"Finish loading {model_name}")
+#
+#         # use SBERT to find the closest choice
+#         self.sbert_model = SBERTModel("sentence-transformers/all-mpnet-base-v2")
+#
+#     def vqa(self, image, question, choices=[]):
+#         with torch.no_grad():
+#             if (len(choices) != 0) and (self.model_name.startswith("blip2")):
+#                 return self.model.vqa(image, question, choices)
+#             else:
+#                 return self.model.vqa(image, question)
+#
+#     def multiple_choice_vqa(self, image, question, choices):
+#
+#         # Get VQA model's answer
+#         free_form_answer = self.vqa(image, question, choices)
+#
+#         # Limit the answer to the choices
+#         multiple_choice_answer = free_form_answer
+#         if free_form_answer not in choices:
+#             multiple_choice_answer = self.sbert_model.multiple_choice(free_form_answer, choices)
+#         return {"free_form_answer": free_form_answer, "multiple_choice_answer": multiple_choice_answer}
+#

@@ -76,41 +76,77 @@ def tifa_score_benchmark(vqa_model_name, question_answer_path, id2img_path):
 
 
 
-def tifa_score_single(vqa_model, question_answer_pairs, img_path):
-    
+# def tifa_score_single(vqa_model, question_answer_pairs, img_path):
+#
+#     tifa_scores = []
+#     question_logs = {}
+#
+#     for question_answer_pair in tqdm(question_answer_pairs):
+#
+#         # read the question, choices, and answers
+#         if question_answer_pair['question'] not in question_logs:
+#             question_logs[question_answer_pair['question']] = question_answer_pair
+#         choices=question_answer_pair['choices']
+#
+#         # get VQA answer
+#         vqa_answer = vqa_model.multiple_choice_vqa(img_path, question_answer_pair['question'], choices=choices)
+#
+#         free_form_answer, mc_answer = vqa_answer["free_form_answer"], vqa_answer["multiple_choice_answer"]
+#         question_logs[question_answer_pair['question']]['free_form_vqa'] = free_form_answer
+#         question_logs[question_answer_pair['question']]['multiple_choice_vqa'] = mc_answer
+#
+#         # compute multiple choice score
+#         score = int(mc_answer == question_answer_pair['answer'])
+#         question_logs[question_answer_pair['question']]['scores'] = score
+#
+#         # statistics of the scores
+#         tifa_scores.append(score)
+#
+#     question_logs = dict(question_logs)
+#     result_dict = {}
+#
+#     # compute the average score
+#     averaged_scores = mean(tifa_scores)
+#
+#     result_dict = {"tifa_score": averaged_scores}
+#
+#     # record the details of each question
+#     result_dict["question_details"] = question_logs
+#
+#     return result_dict
+#
+
+def tifa_score_single(vqa_model, question_answer_pairs, image):
+    """Calculate TIFA score for a single image-question pair"""
+
+    if isinstance(image, str):
+        image = Image.open(image).convert('RGB')
+
     tifa_scores = []
     question_logs = {}
-    
-    for question_answer_pair in tqdm(question_answer_pairs):
-        
-        # read the question, choices, and answers
+
+    for question_answer_pair in question_answer_pairs:
+        choices = question_answer_pair['choices']
+
+        # Store question metadata
         if question_answer_pair['question'] not in question_logs:
             question_logs[question_answer_pair['question']] = question_answer_pair
-        choices=question_answer_pair['choices']
-            
-        # get VQA answer
-        vqa_answer = vqa_model.multiple_choice_vqa(img_path, question_answer_pair['question'], choices=choices)
-         
-        free_form_answer, mc_answer = vqa_answer["free_form_answer"], vqa_answer["multiple_choice_answer"]
-        question_logs[question_answer_pair['question']]['free_form_vqa'] = free_form_answer
-        question_logs[question_answer_pair['question']]['multiple_choice_vqa'] = mc_answer
-        
-        # compute multiple choice score
-        score = int(mc_answer == question_answer_pair['answer'])
-        question_logs[question_answer_pair['question']]['scores'] = score
-        
-        # statistics of the scores
-        tifa_scores.append(score)
-        
-    question_logs = dict(question_logs)
-    result_dict = {}
-    
-    # compute the average score
-    averaged_scores = mean(tifa_scores)
-    
-    result_dict = {"tifa_score": averaged_scores} 
-    
-    # record the details of each question  
-    result_dict["question_details"] = question_logs
-    
-    return result_dict
+
+        # Get VQA answer
+        vqa_answer = vqa_model.multiple_choice_vqa(image,
+                                                   question_answer_pair['question'],
+                                                   choices=choices)
+
+        # Store results
+        question_logs[question_answer_pair['question']].update({
+            'free_form_vqa': vqa_answer["free_form_answer"],
+            'multiple_choice_vqa': vqa_answer["multiple_choice_answer"],
+            'scores': int(vqa_answer["multiple_choice_answer"] == question_answer_pair['answer'])
+        })
+
+        tifa_scores.append(question_logs[question_answer_pair['question']]['scores'])
+
+    return {
+        "tifa_score": sum(tifa_scores) / len(tifa_scores) if tifa_scores else 0,
+        "question_details": question_logs
+    }
