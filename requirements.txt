@@ -7,6 +7,6 @@ openai>=0.27.2
 transformers>=4.27.3
 fairseq
 evaluate
-git+https://github.com/salesforce/LAVIS.git#egg=salesforce-lavis
+salesforce-lavis
 modelscope[multi-modal]
 promptcap>=1.0.3
