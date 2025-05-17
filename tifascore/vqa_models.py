@@ -169,7 +169,6 @@ class VQAModel:
     def vqa(self, image, question, choices=[]):
         if isinstance(image, str):
             image = Image.open(image).convert('RGB')
-        #             image = Image.open(image).convert('RGB')
         with torch.no_grad():
             if (len(choices) != 0) and (self.model_name.startswith("blip2")):
                 return self.model.vqa(image, question, choices)
